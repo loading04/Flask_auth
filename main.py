@@ -43,16 +43,19 @@ def register():
         new_user.name = request.form.get("name")
         new_user.email = request.form.get("email")
 
-        hashed_pwd = generate_password_hash(password=request.form.get("password"), method='pbkdf2:sha256',
-                                            salt_length=8)
-        print(hashed_pwd)
+        if db.session.query(User).filter_by(email=new_user.email).first() is not None:
+            flash("the email already exists go log in page instead")
+        else:
+            hashed_pwd = generate_password_hash(password=request.form.get("password"), method='pbkdf2:sha256',
+                                                salt_length=8)
+            print(hashed_pwd)
 
-        new_user.password = hashed_pwd
+            new_user.password = hashed_pwd
 
-        db.session.add(new_user)
-        db.session.commit()
-        login_user(new_user)
-        return redirect(url_for('secrets'))
+            db.session.add(new_user)
+            db.session.commit()
+            login_user(new_user)
+            return redirect(url_for('secrets'))
     return render_template("register.html")
 
 
@@ -62,12 +65,16 @@ def login():
         get_email = request.form.get('email')
         get_password = request.form.get('password')
         user = db.session.query(User).filter_by(email=get_email).first()
-        try:
-            if check_password_hash(user.password, get_password):
-                login_user(user)
-                return redirect(url_for('secrets'))
-        except:
-            return redirect(url_for('register'))
+
+        if user is None:
+            flash('The email does not exist')
+        else:
+            try:
+                if check_password_hash(user.password, get_password):
+                    login_user(user)
+                    return redirect(url_for('secrets'))
+            except:
+                return redirect(url_for('register'))
 
     return render_template("login.html")
 
